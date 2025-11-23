@@ -66,8 +66,12 @@ if (isset($_POST['afficher_codes'])) {
     $codes_affiches = $stmt_codes->fetchAll(PDO::FETCH_ASSOC);
 }
 
-// Liste des scrutins
-$scrutins = $pdo->query("SELECT id, nom, date_creation FROM scrutins ORDER BY date_creation DESC")->fetchAll(PDO::FETCH_ASSOC);
+// Liste des scrutins avec nombre de votes
+$scrutins = $pdo->query("SELECT s.id, s.nom, s.date_creation, COUNT(v.id) AS nb_votes
+                        FROM scrutins s
+                        LEFT JOIN votes v ON v.scrutin_id = s.id
+                        GROUP BY s.id
+                        ORDER BY s.date_creation DESC")->fetchAll(PDO::FETCH_ASSOC);
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -86,12 +90,12 @@ button { margin-top: 5px; margin-right: 5px; }
 <?php if($message) echo "<p style='color:green;'>$message</p>"; ?>
 <h2>Liste des scrutins</h2>
 <table>
-<tr><th>ID</th><th>Nom</th><th>Date création</th><th>Actions</th></tr>
+<tr><th>ID</th><th>Nom</th><th>Date création (Votes)</th><th>Actions</th></tr>
 <?php foreach($scrutins as $s): ?>
 <tr>
 <td><?= $s['id'] ?></td>
 <td><?= htmlspecialchars($s['nom']) ?></td>
-<td><?= $s['date_creation'] ?></td>
+<td><?= $s['date_creation'] ?> (<?= $s['nb_votes'] ?> votes)</td>
 <td>
 <form method='post' style='display:inline;'>
 <input type='hidden' name='supprimer_id' value='<?= $s['id'] ?>'>
