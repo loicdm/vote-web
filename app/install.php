@@ -1,12 +1,12 @@
 <?php
 require 'db_config.php';
 
-    // Créer la base si elle n'existe pas
-    $pdo->exec("CREATE DATABASE IF NOT EXISTS $dbname CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
-    $pdo->exec("USE $dbname");
+// Créer la base si elle n'existe pas
+$pdo->exec("CREATE DATABASE IF NOT EXISTS $dbname CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+$pdo->exec("USE $dbname");
 
-    // Créer les tables
-    $sql = <<<SQL
+// Créer les tables
+$sql = <<<SQL
 
 CREATE TABLE IF NOT EXISTS scrutins (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -37,17 +37,16 @@ CREATE TABLE IF NOT EXISTS codes (
 CREATE TABLE IF NOT EXISTS votes (
     id INT AUTO_INCREMENT PRIMARY KEY,
     scrutin_id INT NOT NULL,
-    candidat_id INT NOT NULL,
-    valeur TINYINT NOT NULL,
+    code_utilise VARCHAR(50) NOT NULL,
+    vote JSON NOT NULL,
     date_vote DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (scrutin_id) REFERENCES scrutins(id) ON DELETE CASCADE,
-    FOREIGN KEY (candidat_id) REFERENCES candidats(id) ON DELETE CASCADE
+    FOREIGN KEY (scrutin_id) REFERENCES scrutins(id) ON DELETE CASCADE
 );
 
 SQL;
 
-    $pdo->exec($sql);
-    echo "Installation terminée : tables créées avec succès.";
+$pdo->exec($sql);
+echo "Installation terminée : tables créées avec succès.";
 
 ?>
 

@@ -1,82 +1,91 @@
 <?php
-// --- voter.php ---
 require 'db_config.php';
 
-$scrutin_id = $_GET['scrutin_id'] ?? null;
-if (!$scrutin_id) {
-    die('Scrutin introuvable.');
+$message = '';
+$scrutin_id = isset($_GET['scrutin_id']) ? intval($_GET['scrutin_id']) : 0;
+
+// récupérer les candidats pour le scrutin via la table candidatures
+$candidats = [];
+if ($scrutin_id) {
+    $stmt = $pdo->prepare("SELECT c.id, c.nom
+                           FROM candidats c
+                           INNER JOIN candidatures ca ON ca.candidat_id = c.id
+                           WHERE ca.scrutin_id = ?");
+    $stmt->execute([$scrutin_id]);
+    $candidats = $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
-// Récupérer les candidats liés à ce scrutin
-$stmt = $pdo->prepare("SELECT c.id, c.nom FROM candidats c INNER JOIN candidatures ca ON c.id = ca.candidat_id WHERE ca.scrutin_id = ?");
-$stmt->execute([$scrutin_id]);
-$candidats = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-$erreur = '';
-$success = '';
-
+// soumission du vote
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $code = trim($_POST['code'] ?? '');
-    $votes_post = $_POST['vote'] ?? [];
-
-    // Vérifier le code universel disponible
-    $stmt = $pdo->prepare("SELECT id FROM codes WHERE code = ? AND utilise = 0");
+    $code = trim($_POST['code']);
+    
+    // vérifier si le code existe et n'a pas été utilisé
+    $stmt = $pdo->prepare("SELECT id, utilise FROM codes WHERE code = ?");
     $stmt->execute([$code]);
-    $code_disponible = $stmt->fetch(PDO::FETCH_ASSOC);
+    $code_info = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    if (!$code_disponible) {
-        $erreur = 'Code invalide ou déjà utilisé.';
+    if (!$code_info) {
+        $message = "Code invalide.";
+    } elseif ($code_info['utilise']) {
+        $message = "Code déjà utilisé.";
     } else {
-        $pdo->beginTransaction();
-        try {
-            // Enregistrer les votes
-            $stmt_vote = $pdo->prepare("INSERT INTO votes (scrutin_id, candidat_id, valeur) VALUES (?, ?, ?)");
-            foreach ($candidats as $c) {
-                $val = $votes_post[$c['id']] ?? 0;
-                $stmt_vote->execute([$scrutin_id, $c['id'], $val]);
-            }
-
-            // Marquer le code comme utilisé
-            $stmt_code = $pdo->prepare("UPDATE codes SET utilise = 1 WHERE id = ?");
-            $stmt_code->execute([$code_disponible['id']]);
-
-            $pdo->commit();
-            $success = 'Vote enregistré avec succès !';
-        } catch (Exception $e) {
-            $pdo->rollBack();
-            $erreur = 'Erreur lors de l\'enregistrement du vote.';
+        // construire le vote
+        $vote_arr = [];
+        foreach($candidats as $c) {
+            $vote_arr[$c['id']] = isset($_POST['vote'][$c['id']]) ? intval($_POST['vote'][$c['id']]) : 0;
         }
+
+        // enregistrer le vote unique en JSON
+        $stmt = $pdo->prepare("INSERT INTO votes (scrutin_id, code_utilise, vote) VALUES (?, ?, ?)");
+        $stmt->execute([$scrutin_id, $code, json_encode($vote_arr)]);
+
+        // marquer le code comme utilisé
+        $stmt = $pdo->prepare("UPDATE codes SET utilise = 1 WHERE id = ?");
+        $stmt->execute([$code_info['id']]);
+
+        $message = "Vote enregistré. Merci !";
     }
 }
 ?>
+
 <!DOCTYPE html>
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<title>Voter - Scrutin <?= htmlspecialchars($scrutin_id) ?></title>
+<title>Voter</title>
 <style>
 body { font-family: Arial; margin: 20px; }
-.candidat { margin-bottom: 10px; }
-button { margin-top: 20px; }
+label { display: block; margin-top: 10px; }
+button { margin-top: 10px; }
 </style>
 </head>
 <body>
-<h1>Scrutin: <?= htmlspecialchars($scrutin_id) ?></h1>
-<?php if($erreur) echo "<p style='color:red;'>$erreur</p>"; ?>
-<?php if($success) echo "<p style='color:green;'>$success</p>"; ?>
+<h1>Voter pour le scrutin</h1>
+<?php if($message) echo "<p style='color:red;'>$message</p>"; ?>
+
+<?php if($scrutin_id && $candidats): ?>
 <form method="post">
-<label>Code universel à usage unique:</label><br>
-<input type='text' name='code' required><br><br>
+<label>Code universel :</label>
+<input type="text" name="code" required>
+
+<h2>Candidats :</h2>
 <?php foreach($candidats as $c): ?>
-<div class='candidat'>
-<strong><?= htmlspecialchars($c['nom']) ?></strong><br>
-<label><input type='radio' name='vote[<?= $c['id'] ?>]' value='1'> Pour</label>
-<label><input type='radio' name='vote[<?= $c['id'] ?>]' value='-1'> Contre</label>
-<label><input type='radio' name='vote[<?= $c['id'] ?>]' value='0' checked> Ne se prononce pas</label>
-</div>
+    <label>
+        <?= htmlspecialchars($c['nom']) ?> :
+        <select name="vote[<?= $c['id'] ?>]">
+            <option value="1">Pour</option>
+            <option value="0" selected>Pas d'avis</option>
+            <option value="-1">Contre</option>
+        </select>
+    </label>
 <?php endforeach; ?>
-<button type='submit'>Voter</button>
+
+<button type="submit">Envoyer le vote</button>
 </form>
+<?php else: ?>
+<p>Scrutin introuvable.</p>
+<?php endif; ?>
+
 </body>
 </html>
 
