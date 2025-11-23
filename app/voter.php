@@ -1,7 +1,7 @@
 <?php
+// --- voter.php ---
 require 'db_config.php';
 
-// --- voter.php ---
 $scrutin_id = $_GET['scrutin_id'] ?? null;
 if (!$scrutin_id) {
     die('Scrutin introuvable.');
@@ -19,9 +19,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $code = trim($_POST['code'] ?? '');
     $votes_post = $_POST['vote'] ?? [];
 
-    // Vérifier le code disponible
-    $stmt = $pdo->prepare("SELECT id FROM codes WHERE scrutin_id = ? AND code = ? AND utilise = 0");
-    $stmt->execute([$scrutin_id, $code]);
+    // Vérifier le code universel disponible
+    $stmt = $pdo->prepare("SELECT id FROM codes WHERE code = ? AND utilise = 0");
+    $stmt->execute([$code]);
     $code_disponible = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if (!$code_disponible) {
@@ -44,7 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $success = 'Vote enregistré avec succès !';
         } catch (Exception $e) {
             $pdo->rollBack();
-            $erreur = 'Erreur lors de l'enregistrement du vote.';
+            $erreur = 'Erreur lors de l\'enregistrement du vote.';
         }
     }
 }
@@ -65,7 +65,7 @@ button { margin-top: 20px; }
 <?php if($erreur) echo "<p style='color:red;'>$erreur</p>"; ?>
 <?php if($success) echo "<p style='color:green;'>$success</p>"; ?>
 <form method="post">
-<label>Code à usage unique:</label><br>
+<label>Code universel à usage unique:</label><br>
 <input type='text' name='code' required><br><br>
 <?php foreach($candidats as $c): ?>
 <div class='candidat'>

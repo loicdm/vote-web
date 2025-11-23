@@ -1,7 +1,9 @@
 <?php
+// --- admin_scrutins.php ---
 require 'db_config.php';
 
 $message = '';
+$codes_affiches = [];
 
 // Supprimer un scrutin
 if (isset($_POST['supprimer_id'])) {
@@ -10,17 +12,23 @@ if (isset($_POST['supprimer_id'])) {
     $message = 'Scrutin supprimé.';
 }
 
-// Générer des codes supplémentaires
-if (isset($_POST['generer_id']) && isset($_POST['nb_codes'])) {
+// Générer des codes universels
+if (isset($_POST['generer_codes']) && isset($_POST['nb_codes'])) {
     $nb = intval($_POST['nb_codes']);
     if ($nb > 0) {
-        $stmt_code = $pdo->prepare("INSERT INTO codes (scrutin_id, code) VALUES (?, ?)");
-        for ($i=0; $i<$nb; $i++) {
+        $stmt_code = $pdo->prepare("INSERT INTO codes (code) VALUES (?)");
+        for ($i = 0; $i < $nb; $i++) {
             $code = bin2hex(random_bytes(4));
-            $stmt_code->execute([$_POST['generer_id'], $code]);
+            $stmt_code->execute([$code]);
         }
-        $message = $nb . ' codes générés.';
+        $message = $nb . ' codes universels générés.';
     }
+}
+
+// Afficher tous les codes
+if (isset($_POST['afficher_codes'])) {
+    $stmt_codes = $pdo->query("SELECT code, utilise FROM codes ORDER BY id ASC");
+    $codes_affiches = $stmt_codes->fetchAll(PDO::FETCH_ASSOC);
 }
 
 // Liste des scrutins
@@ -41,6 +49,7 @@ button { margin-top: 5px; }
 <body>
 <h1>Administration des scrutins</h1>
 <?php if($message) echo "<p style='color:green;'>$message</p>"; ?>
+<h2>Liste des scrutins</h2>
 <table>
 <tr><th>ID</th><th>Nom</th><th>Date création</th><th>Actions</th></tr>
 <?php foreach($scrutins as $s): ?>
@@ -53,15 +62,31 @@ button { margin-top: 5px; }
 <input type='hidden' name='supprimer_id' value='<?= $s['id'] ?>'>
 <button type='submit' onclick="return confirm('Confirmer la suppression ?')">Supprimer</button>
 </form>
-<form method='post' style='display:inline; margin-left:5px;'>
-<input type='hidden' name='generer_id' value='<?= $s['id'] ?>'>
-<input type='number' name='nb_codes' min='1' placeholder='Nombre de codes'>
-<button type='submit'>Générer codes</button>
-</form>
 </td>
 </tr>
 <?php endforeach; ?>
 </table>
+
+<h2>Codes universels</h2>
+<form method='post'>
+<input type='number' name='nb_codes' min='1' placeholder='Nombre de codes à générer'>
+<button type='submit' name='generer_codes'>Générer</button>
+<button type='submit' name='afficher_codes'>Afficher tous les codes</button>
+</form>
+
+<?php if($codes_affiches): ?>
+<h3>Liste des codes universels</h3>
+<table>
+<tr><th>Code</th><th>Utilisé</th></tr>
+<?php foreach($codes_affiches as $c): ?>
+<tr>
+<td><?= htmlspecialchars($c['code']) ?></td>
+<td><?= $c['utilise'] ? 'Oui' : 'Non' ?></td>
+</tr>
+<?php endforeach; ?>
+</table>
+<?php endif; ?>
+
 </body>
 </html>
 
