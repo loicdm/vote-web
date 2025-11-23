@@ -1,11 +1,9 @@
 services:
   web:
-    image: php:8.2-apache
+    build: ./app
     container_name: scrutin_web
     ports:
       - "8080:80"
-    volumes:
-      - ./app:/var/www/html
     depends_on:
       - db
     restart: unless-stopped
