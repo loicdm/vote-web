@@ -11,6 +11,19 @@ if (isset($_POST['supprimer_id'])) {
     $message = 'Scrutin supprimé.';
 }
 
+// Supprimer tous les scrutins
+if (isset($_POST['supprimer_tous_scrutins'])) {
+ // TRUNCATE votes, candidatures, codes, scrutins
+    $pdo->exec("SET FOREIGN_KEY_CHECKS = 0"); // désactiver temporairement les contraintes FK
+    $pdo->exec("TRUNCATE TABLE votes");
+    $pdo->exec("TRUNCATE TABLE candidatures");
+    $pdo->exec("TRUNCATE TABLE candidats"); 
+    $pdo->exec("TRUNCATE TABLE codes");
+    $pdo->exec("TRUNCATE TABLE scrutins");
+    $pdo->exec("SET FOREIGN_KEY_CHECKS = 1"); // réactiver les contraintes FK
+    $message = 'Tous les scrutins et toutes les tables associées ont été réinitialisés.';
+}
+
 // Générer des codes universels lisibles (adjectif-nom-nombre)
 $adjectifs = ['Bleu','Rapide','Fort','Sage','Vif','Calme','Fou','Joli','Grand','Petit',
               'Rouge','Noir','Blanc','Vert','Jaune','Orange','Violet','Brave','Gentil','Féroce'];
@@ -90,6 +103,9 @@ a:hover { text-decoration: underline; }
 <?php if($message) echo "<p style='color:green;'>$message</p>"; ?>
 
 <h2>Liste des scrutins</h2>
+<form method='post' style='margin-bottom:10px;'>
+<button type='submit' name='supprimer_tous_scrutins' onclick="return confirm('Supprimer tous les scrutins ?')">Supprimer tous les scrutins</button>
+</form>
 <table>
 <tr><th>ID</th><th>Nom</th><th>Date création (Votes)</th><th>Actions</th></tr>
 <?php foreach($scrutins as $s): ?>
