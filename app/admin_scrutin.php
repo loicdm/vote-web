@@ -44,14 +44,31 @@ if (isset($_POST['afficher_codes'])) {
     $codes_affiches = $stmt_codes->fetchAll(PDO::FETCH_ASSOC);
 }
 
+// Supprimer un code spécifique
+if (isset($_POST['supprimer_code'])) {
+    $stmt = $pdo->prepare("DELETE FROM codes WHERE id = ?");
+    $stmt->execute([$_POST['supprimer_code']]);
+    $message = 'Code supprimé.';
+}
+
+// Supprimer tous les codes
+if (isset($_POST['supprimer_tous_codes'])) {
+    $pdo->exec("TRUNCATE TABLE codes");
+    $message = 'Tous les codes ont été supprimés.';
+}
+
+// Supprimer les codes utilisés
+if (isset($_POST['supprimer_codes_utilises'])) {
+    $pdo->exec("DELETE FROM codes WHERE utilise = 1");
+    $message = 'Tous les codes utilisés ont été supprimés.';
+}
+
 // Liste des scrutins avec nombre de votes
-$scrutins = $pdo->query("
-    SELECT s.id, s.nom, s.date_creation, COUNT(v.id) AS nb_votes
-    FROM scrutins s
-    LEFT JOIN votes v ON v.scrutin_id = s.id
-    GROUP BY s.id
-    ORDER BY s.date_creation DESC
-")->fetchAll(PDO::FETCH_ASSOC);
+$scrutins = $pdo->query("SELECT s.id, s.nom, s.date_creation, COUNT(v.id) AS nb_votes
+                        FROM scrutins s
+                        LEFT JOIN votes v ON v.scrutin_id = s.id
+                        GROUP BY s.id
+                        ORDER BY s.date_creation DESC")->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
 <!DOCTYPE html>
@@ -96,20 +113,28 @@ a:hover { text-decoration: underline; }
 
 <h2>Codes universels</h2>
 <form method="post">
-<input type="number" name="nb_codes" min="1" placeholder="Nombre de codes à générer">
-<button type="submit" name="generer_codes">Générer</button>
-<button type="submit" name="afficher_codes">Afficher tous les codes</button>
+<input type='number' name='nb_codes' min='1' placeholder='Nombre de codes à générer'>
+<button type='submit' name='generer_codes'>Générer</button>
+<button type='submit' name='afficher_codes'>Afficher tous les codes</button>
+<button type='submit' name='supprimer_tous_codes' onclick="return confirm('Supprimer tous les codes ?')">Supprimer tous les codes</button>
+<button type='submit' name='supprimer_codes_utilises' onclick="return confirm('Supprimer tous les codes utilisés ?')">Supprimer codes utilisés</button>
 </form>
 
 <?php if($codes_affiches): ?>
 <h3>Liste des codes universels</h3>
 <table>
-<tr><th>ID</th><th>Code</th><th>Utilisé</th></tr>
+<tr><th>ID</th><th>Code</th><th>Utilisé</th><th>Supprimer</th></tr>
 <?php foreach($codes_affiches as $c): ?>
 <tr>
 <td><?= $c['id'] ?></td>
 <td><?= htmlspecialchars($c['code']) ?></td>
 <td><?= $c['utilise'] ? 'Oui' : 'Non' ?></td>
+<td>
+<form method='post' style='display:inline;'>
+<input type='hidden' name='supprimer_code' value='<?= $c['id'] ?>'>
+<button type='submit'>Supprimer</button>
+</form>
+</td>
 </tr>
 <?php endforeach; ?>
 </table>
