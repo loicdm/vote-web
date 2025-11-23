@@ -5,6 +5,11 @@ require 'db_config.php';
 $message = '';
 $codes_affiches = [];
 
+$adjectifs = ['Bleu','Rapide','Fort','Sage','Vif','Calme','Fou','Joli','Grand','Petit',
+              'Rouge','Noir','Blanc','Vert','Jaune','Orange','Violet','Brave','Gentil','Féroce'];
+$noms = ['Lion','Tigre','Renard','Aigle','Loup','Ours','Chat','Chien','Panther','Dragon',
+         'Griffon','Serpent','Corbeau','Faucon','Requin','Phénix','Cerf','Singe','Taureau','Hibou'];
+
 // Supprimer un scrutin
 if (isset($_POST['supprimer_id'])) {
     $stmt = $pdo->prepare("DELETE FROM scrutins WHERE id = ?");
@@ -12,13 +17,24 @@ if (isset($_POST['supprimer_id'])) {
     $message = 'Scrutin supprimé.';
 }
 
-// Générer des codes universels
+// Générer des codes universels lisibles
 if (isset($_POST['generer_codes']) && isset($_POST['nb_codes'])) {
     $nb = intval($_POST['nb_codes']);
     if ($nb > 0) {
         $stmt_code = $pdo->prepare("INSERT INTO codes (code) VALUES (?)");
         for ($i = 0; $i < $nb; $i++) {
-            $code = bin2hex(random_bytes(4));
+            do {
+                $adj = $adjectifs[array_rand($adjectifs)];
+                $nom = $noms[array_rand($noms)];
+                $nombre = str_pad(random_int(0, 99), 2, '0', STR_PAD_LEFT);
+                $code = "$adj-$nom-$nombre";
+
+                $stmt = $pdo->prepare("SELECT id FROM codes WHERE code = ?");
+                $stmt->execute([$code]);
+                $existe = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            } while ($existe);
+
             $stmt_code->execute([$code]);
         }
         $message = $nb . ' codes universels générés.';
@@ -32,7 +48,7 @@ if (isset($_POST['supprimer_code'])) {
     $message = 'Code supprimé.';
 }
 
-// Supprimer tous les codes
+// Supprimer tous les codes et réinitialiser l'ID
 if (isset($_POST['supprimer_tous_codes'])) {
     $pdo->exec("TRUNCATE TABLE codes");
     $message = 'Tous les codes ont été supprimés et l\'ID a été réinitialisé.';
