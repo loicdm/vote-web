@@ -83,6 +83,8 @@ body { font-family: Arial; margin: 20px; }
 table { border-collapse: collapse; width: 100%; }
 td, th { border: 1px solid #ccc; padding: 8px; text-align: left; }
 button { margin-top: 5px; margin-right: 5px; }
+a { text-decoration: none; color: blue; }
+a:hover { text-decoration: underline; }
 </style>
 </head>
 <body>
@@ -94,7 +96,11 @@ button { margin-top: 5px; margin-right: 5px; }
 <?php foreach($scrutins as $s): ?>
 <tr>
 <td><?= $s['id'] ?></td>
-<td><?= htmlspecialchars($s['nom']) ?></td>
+<td>
+    <a href="voter.php?scrutin_id=<?= $s['id'] ?>" target="_blank">
+        <?= htmlspecialchars($s['nom']) ?>
+    </a>
+</td>
 <td><?= $s['date_creation'] ?> (<?= $s['nb_votes'] ?> votes)</td>
 <td>
 <form method='post' style='display:inline;'>
