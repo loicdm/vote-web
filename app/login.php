@@ -10,7 +10,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Comparaison avec les variables d'environnement
     if ($user === getenv('ADMIN_USER') && $pass === getenv('ADMIN_PASS')) {
         $_SESSION['logged_in'] = true;
-        header("Location: admin_scrutins.php");
+        header("Location: admin_scrutin.php");
         exit;
     } else {
         $message = "Login ou mot de passe incorrect.";

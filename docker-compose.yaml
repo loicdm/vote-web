@@ -2,11 +2,13 @@ services:
   web:
     build: ./app
     container_name: scrutin_web
+    #ports:
+      #- 80:80
     depends_on:
       - db
     environment:
-      ADMIN_USER: admin
-      ADMIN_PASS: supersecret
+      ADMIN_USER: ${ADMIN_USER:-admin}
+      ADMIN_PASS: ${ADMIN_PASS:-password}
     volumes:
       - app:/var/www/html
     restart: unless-stopped
@@ -22,3 +24,7 @@ services:
     volumes:
       - db_data:/var/lib/mysql
     restart: unless-stopped
+
+#volumes:
+#  db_data:
+ # app:
