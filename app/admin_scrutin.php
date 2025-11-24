@@ -24,6 +24,49 @@ if (isset($_POST['supprimer_tous_scrutins'])) {
     $message = 'Tous les scrutins et toutes les tables associées ont été réinitialisés.';
 }
 
+if (isset($_POST['export_scrutin_id'])) {
+$scrutin_id = intval($_POST['export_scrutin_id']);
+
+
+// Récupérer les candidats du scrutin
+$stmt = $pdo->prepare("SELECT c.id, c.nom FROM candidats c
+JOIN candidatures ca ON ca.candidat_id = c.id
+WHERE ca.scrutin_id = ? ORDER BY c.id ASC");
+$stmt->execute([$scrutin_id]);
+$candidats = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+
+// Récupérer les votes du scrutin
+$stmt = $pdo->prepare("SELECT vote FROM votes WHERE scrutin_id = ? ORDER BY id ASC");
+$stmt->execute([$scrutin_id]);
+$votes = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+
+header('Content-Type: text/csv');
+header('Content-Disposition: attachment; filename="scrutin_' . $scrutin_id . '.csv"');
+$output = fopen('php://output', 'w');
+
+
+// En-tête CSV
+$header = array_map(function($c) { return $c['nom']; }, $candidats);
+fputcsv($output, $header);
+
+
+// Lignes de votes
+foreach ($votes as $v) {
+$vote_arr = json_decode($v['vote'], true);
+$ligne = [];
+foreach ($candidats as $c) {
+$ligne[] = isset($vote_arr[$c['id']]) ? $vote_arr[$c['id']] : 0;
+}
+fputcsv($output, $ligne);
+}
+
+
+fclose($output);
+exit;
+}
+
 // Générer des codes universels lisibles (adjectif-nom-nombre)
 $adjectifs = ['Bleu','Rapide','Fort','Sage','Vif','Calme','Fou','Joli','Grand','Petit',
               'Rouge','Noir','Blanc','Vert','Jaune','Orange','Violet','Brave','Gentil','Féroce'];
@@ -102,6 +145,7 @@ a:hover { text-decoration: underline; }
 <h1>Administration des scrutins</h1>
 <?php if($message) echo "<p style='color:green;'>$message</p>"; ?>
 
+
 <h2>Liste des scrutins</h2>
 <form method='post' style='margin-bottom:10px;'>
 <button type='submit' name='supprimer_tous_scrutins' onclick="return confirm('Supprimer tous les scrutins ?')">Supprimer tous les scrutins</button>
@@ -112,9 +156,9 @@ a:hover { text-decoration: underline; }
 <tr>
 <td><?= $s['id'] ?></td>
 <td>
-    <a href="voter.php?scrutin_id=<?= $s['id'] ?>" target="_blank">
-        <?= htmlspecialchars($s['nom']) ?>
-    </a>
+<a href="voter.php?scrutin_id=<?= $s['id'] ?>" target="_blank">
+<?= htmlspecialchars($s['nom']) ?>
+</a>
 </td>
 <td><?= $s['date_creation'] ?> (<?= $s['nb_votes'] ?> votes)</td>
 <td>
@@ -122,10 +166,15 @@ a:hover { text-decoration: underline; }
 <input type="hidden" name="supprimer_id" value="<?= $s['id'] ?>">
 <button type="submit" onclick="return confirm('Confirmer la suppression ?')">Supprimer</button>
 </form>
+<form method='post' style='display:inline;'>
+<input type='hidden' name='export_scrutin_id' value='<?= $s['id'] ?>'>
+<button type='submit'>Exporter CSV</button>
+</form>
 </td>
 </tr>
 <?php endforeach; ?>
 </table>
+
 
 <h2>Codes universels</h2>
 <form method="post">
