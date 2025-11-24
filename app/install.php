@@ -1,4 +1,6 @@
 <?php
+require 'auth.php';
+check_login(); // redirige vers login si non connecté
 require 'db_config.php';
 
 // Créer la base si elle n'existe pas

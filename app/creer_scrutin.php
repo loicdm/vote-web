@@ -1,4 +1,6 @@
 <?php
+require 'auth.php';
+check_login(); // redirige vers login si non connecté
 require 'db_config.php';
 
 $message = '';
@@ -67,6 +69,10 @@ button { margin-top: 10px; }
 <textarea name="candidats" rows="5" placeholder="Ex: Jean&#10;Claude&#10;Alice"></textarea>
 
 <button type="submit">Créer le scrutin</button>
+<button type="button" onclick="window.location.href='admin_scrutin.php'">
+    Administrer les scrutin
+</button>
+
 </form>
 </body>
 </html>

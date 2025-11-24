@@ -1,4 +1,6 @@
 <?php
+require 'auth.php';
+check_login(); // redirige vers login si non connecté
 require 'db_config.php';
 
 $message = '';
@@ -41,9 +43,17 @@ $stmt = $pdo->prepare("SELECT vote FROM votes WHERE scrutin_id = ? ORDER BY id A
 $stmt->execute([$scrutin_id]);
 $votes = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+$nom_scrutin = '';
+$stmt = $pdo->prepare("SELECT nom FROM scrutins WHERE id = ?");
+$stmt->execute([$scrutin_id]);
+$scrutin = $stmt->fetch(PDO::FETCH_ASSOC);
+
+if ($scrutin) {
+  $nom_scrutin = $scrutin['nom'];
+} 
 
 header('Content-Type: text/csv');
-header('Content-Disposition: attachment; filename="scrutin_' . $scrutin_id . '.csv"');
+header('Content-Disposition: attachment; filename="scrutin_' . $nom_scrutin . '_' . $scrutin_id . '.csv"');
 $output = fopen('php://output', 'w');
 
 
@@ -148,7 +158,12 @@ a:hover { text-decoration: underline; }
 
 <h2>Liste des scrutins</h2>
 <form method='post' style='margin-bottom:10px;'>
+<button type="button" onclick="window.location.href='creer_scrutin.php'">
+    Créer un scrutin
+</button>
+
 <button type='submit' name='supprimer_tous_scrutins' onclick="return confirm('Supprimer tous les scrutins ?')">Supprimer tous les scrutins</button>
+
 </form>
 <table>
 <tr><th>ID</th><th>Nom</th><th>Date création (Votes)</th><th>Actions</th></tr>
@@ -204,6 +219,11 @@ a:hover { text-decoration: underline; }
 <?php endforeach; ?>
 </table>
 <?php endif; ?>
+
+<form method="get" style="text-align:right;">
+    <button type="submit" name="logout">Déconnexion</button>
+</form>
+
 
 </body>
 </html>
