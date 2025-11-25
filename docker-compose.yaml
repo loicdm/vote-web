@@ -2,8 +2,8 @@ services:
   web:
     build: ./app
     container_name: scrutin_web
-    #ports:
-      #- 80:80
+    ports:
+      - 80:80
     depends_on:
       - db
     environment:
@@ -25,6 +25,6 @@ services:
       - db_data:/var/lib/mysql
     restart: unless-stopped
 
-#volumes:
-#  db_data:
- # app:
+volumes:
+  db_data:
+  app:

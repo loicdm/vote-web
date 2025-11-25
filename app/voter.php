@@ -31,19 +31,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $type_vote = $_POST['type_vote'] ?? null;
 
     // vérifier le code
-    $stmt = $pdo->prepare("SELECT id, utilise FROM codes WHERE code = ?");
+    $stmt = $pdo->prepare("SELECT id FROM codes WHERE code = ?");
     $stmt->execute([$code]);
     $code_info = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if (!$code_info) {
         $message = "Code invalide.";
-    } elseif ($code_info['utilise']) {
-        $message = "Code déjà utilisé.";
-    } elseif (!$type_vote) {
-        $message = "Veuillez choisir un type de vote.";
     } else {
+     // vérifier si utilisé POUR CE SCRUTIN
+    $stmt = $pdo->prepare("SELECT id FROM codes_utilises WHERE code_id = ? AND scrutin_id = ?");
+    $stmt->execute([$code_info['id'], $scrutin_id]);
+    $deja_utilise = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        // Initialiser tous les candidats à 0
+    if ($deja_utilise) {
+        $message = "Vous avez déjà voté pour ce scrutin avec ce code.";
+      } else {
+        // OK → enregistrer le vote
+      // Initialiser tous les candidats à 0
         $vote_arr = [];
         foreach ($candidats as $c) {
             $vote_arr[$c['id']] = 0;
@@ -77,13 +81,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                    VALUES (?, ?, ?)");
             $stmt->execute([$scrutin_id, $code, json_encode($vote_arr)]);
 
-            // marquer le code utilisé
-            $stmt = $pdo->prepare("UPDATE codes SET utilise = 1 WHERE id = ?");
-            $stmt->execute([$code_info['id']]);
+            $stmt = $pdo->prepare("INSERT INTO codes_utilises (code_id, scrutin_id) VALUES (?, ?)");
+            $stmt->execute([$code_info['id'], $scrutin_id]);
 
             $message = "Vote enregistré. Merci !";
         }
-    }
+
+      }
+            }
+// fin
 }
 ?>
 
