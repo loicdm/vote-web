@@ -180,6 +180,9 @@ button { margin-top: 5px; margin-right: 5px; }
 <form method='post' style='margin-bottom:10px;'>
 <button type="button" onclick="window.location.href='creer_scrutin.php'">
     Créer un scrutin
+      </button>
+<button type="button" onclick="window.location.href='depouiller.php'">
+    Dépouiller un scrutin
 </button>
 <button type='submit' name='supprimer_tous_scrutins' onclick="return confirm('Supprimer tous les scrutins ?')">Supprimer tous les scrutins</button>
 </form>
